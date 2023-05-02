@@ -1,27 +1,17 @@
 # encoding: utf-8
 
-import torch, os, functools
+import torch
 from torch.nn.parallel import DataParallel
 from utils.util_logger import get_current_logger
 from utils.util_config import empty_config_node
 from torch.nn import init
+import models.collector as models
 
 def build_model(cfg, is_train=True):
     model_cfg = cfg.model
     device = 'cpu' if empty_config_node(cfg.task.get('devices')) else 'cuda'
-    model_type = model_cfg.get('type').lower()
     
-    if model_type == 'faster-rcnn':
-        # from .faster_rcnn import FasterRCNN
-        # model = FasterRCNN(model_cfg)
-        from torchvision import models
-        model = models.detection.fasterrcnn_resnet50_fpn(weights=
-                    models.detection.FasterRCNN_ResNet50_FPN_Weights.DEFAULT)
-    # add model
-
-    else:
-        raise Exception("Not found this modle!")
-
+    model = __parse_model(model_cfg)
     logger = get_current_logger()
 
     # pretrain field
@@ -46,7 +36,7 @@ def build_model(cfg, is_train=True):
         #     init_type, init_bn_type, gain))
         pass
 
-    logger.info("Model: \n{}".format(model))
+    # logger.info("Model: \n{}".format(model))
 
     return DataParallel(model, cfg.task.get('devices')).to(device)
 
@@ -63,6 +53,30 @@ def load_model(path, model, strict=True):
         model = model.module
     state_dict = torch.load(path)
     model.load_state_dict(state_dict, strict=strict)
+
+def __get_model(model_type, model_params):
+    logger = get_current_logger()
+    try:
+        model = getattr(models, model_type)
+        model = model(**model_params)
+    except:
+        message = "Failure to build this [{}] modle with {} parameters!".format(
+                        model_type, model_params)
+        logger.error(message)
+        raise Exception(message)
+    logger.info('{} model: {}'.format(model_type, model))
+    return model
+
+def __parse_model(model_cfg: dict, main_model=True):
+    if 'type' not in model_cfg or 'params' not in model_cfg: 
+        return model_cfg
+    model_params_dict = {}
+    for key, value in model_cfg.get('params').items():
+        if isinstance(value, dict): 
+            value = __parse_model(value, False)
+        model_params_dict[key] = value
+    model = __get_model(model_cfg.get('type'), model_params_dict)
+    return model
 
 def __init_weight(model,  init_type, init_bn_type, gain):
     classname = model.__class__.__name__

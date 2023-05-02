@@ -4,8 +4,6 @@ from utils.util_logger import get_current_logger
 from utils.util_config import get_output_dir
 from utils.util_config import empty_config_node
 from utils.util_file import mkdir_if_not_exist
-from utils.util_img import *
-from data.data_parser import do_parser
 import torch
 
 def do_test(cfg, model, data_loader):

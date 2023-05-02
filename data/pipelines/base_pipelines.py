@@ -1,11 +1,7 @@
 from pycocotools.coco import COCO
 import os, cv2
 import numpy as np
-
-color_type_map = {
-    'color': cv2.IMREAD_COLOR,
-    'grayscale': cv2.IMREAD_GRAYSCALE
-}
+from utils.util_data import COLOR_TYPE_MAP
 
 def __get_data_from_container(container, image_id, data_type):
     if isinstance(container, COCO):
@@ -32,9 +28,9 @@ def read_image_from_file(pipeline_cfg, data_cfg, img_id, cfg_index='ReadImageFro
     if not pipeline_cfg:
         raise Exception("The pipe must load a image!")
     image_path = __get_data_from_container(data_cfg.get('container'), img_id, 'image')
-    target = dict(name=os.path.basename(image_path))
     image_file = os.path.join(data_cfg.get('data_dir'), image_path)
-    image = cv2.imread(image_file, color_type_map[pipeline_cfg.get('color_type')])
+    target = dict(name=image_file)
+    image = cv2.imread(image_file, COLOR_TYPE_MAP[pipeline_cfg.get('color_type')])
     return image, target
 
 def load_annotations(pipeline_cfg, data_cfg, img_id, cfg_index='LoadAnnotations'):

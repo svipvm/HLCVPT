@@ -21,12 +21,13 @@ criticizer=dict(
 
 runner=dict(
     num_epochs=20,
-    eval_period=10,
-    # save_period=10
+    loss_period=300,
+    eval_period=500,
+    save_period=30000
 )
 
 recorder=dict(
     output_dir='work_dir',
-    log_period=10
+    log_period=100
 )
 

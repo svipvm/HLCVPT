@@ -20,20 +20,20 @@ class TestMethod(unittest.TestCase):
         fixed_random_seed(cfg)
 
         from models import build_model
-        TRAIN = False
+        TRAIN = True
         model = build_model(cfg, TRAIN)
         # logger.info('' + str(model))
 
         from data import build_dataloader
-        test_loader = build_dataloader(cfg, 2)
+        test_loader = build_dataloader(cfg, 0)
         data_tier = iter(test_loader)
         batch = next(data_tier)
-        predictions = model(batch[0])
-        print(predictions)
+        predictions = model(batch[0], batch[1])
+        logger.info('result:\n{}'.format(predictions))
 
-        if not TRAIN:
-            from utils.util_visualizer import draw_bboex
-            draw_bboex(cfg, batch[0], batch[1], predictions)
+        # if not TRAIN:
+        from utils.util_visualizer import draw_bboex
+        draw_bboex(cfg, batch[1], predictions[0])
 
         # from IPython import embed;
         # embed()
