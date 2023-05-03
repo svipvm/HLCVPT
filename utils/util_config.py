@@ -1,6 +1,5 @@
 # encoding: utf-8
 
-from yacs.config import CfgNode
 import json
 from .util_file import *
 from importlib import import_module

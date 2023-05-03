@@ -38,7 +38,7 @@ def build_model(cfg, is_train=True):
 
     # logger.info("Model: \n{}".format(model))
 
-    return DataParallel(model, cfg.task.get('devices')).to(device)
+    return DataParallel(model, cfg.task.get('devices'))
 
 def save_model(model, path):
     if isinstance(model, DataParallel):
@@ -64,7 +64,7 @@ def __get_model(model_type, model_params):
                         model_type, model_params)
         logger.error(message)
         raise Exception(message)
-    logger.info('{} model: {}'.format(model_type, model))
+    logger.info('{} model\n{}'.format(model_type, model))
     return model
 
 def __parse_model(model_cfg: dict, main_model=True):

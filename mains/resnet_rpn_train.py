@@ -8,9 +8,6 @@ from utils.util_file import *
 from utils.util_sys import *
 
 import numpy as np
-import torch
-from workers import plain_controller as controller
-from workers.plain_trainer import do_train
 
 logger = None
 
@@ -31,6 +28,7 @@ def train_step(batch_data, model, optimizer, criticizer, device):
     return loss_info
 
 def do_test(model, valid_loader, device):
+    import torch
     loss_summer = {}
     model.eval()
     for batch_data in valid_loader:
@@ -43,7 +41,8 @@ def do_test(model, valid_loader, device):
                 loss_summer[key] = []
             loss_summer[key].append(loss)
     model.train()
-    return {'mean_{}'.formar(key): np.mean(values) for key, values in loss_summer.items()}
+    return {'mean_{}'.formar(key): np.mean(values) 
+                for key, values in loss_summer.items()}
 
 
 def main():
@@ -65,8 +64,11 @@ def main():
     from utils.util_option import fixed_random_seed
     fixed_random_seed(cfg)
 
+    from workers import plain_controller as controller
     components = controller.load_components(cfg)
+
     logger.info("The description of this task is: {}".format(cfg.task.get('version')))
+    from workers.plain_trainer import do_train
     do_train(cfg, train_step, do_test, **components)
     logger.info("This result was saved to: {}".format(get_output_dir(cfg)))
 
