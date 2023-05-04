@@ -28,7 +28,7 @@ class TestDatalodaer(unittest.TestCase):
         logger.info('image batch shape:\n{}'.format(image.shape))
         logger.info('target batch info:\n{}'.format(target))
 
-        draw_bboex(cfg, image, target)
+        draw_boxes(cfg, image, target)
 
         # from IPython import embed;
         # embed()

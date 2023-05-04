@@ -7,7 +7,7 @@ class CocoDataset(Dataset):
     def __init__(self, dataset_cfg, pipeline):
         super(CocoDataset, self).__init__()
         self.dataset_cfg = dataset_cfg
-        self.pipeline = pipeline(self.dataset_cfg)
+        self.pipeline = pipeline
         self.transforms = T.Compose([
             T.Normalize()
         ])
