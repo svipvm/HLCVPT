@@ -1,5 +1,5 @@
 from .datasets.config_coco import *
-from .models.config_rpn_with_fpn import *
+from .models.config_faster_rcnn import *
 from .runtime.config_default import *
 
 task=dict(

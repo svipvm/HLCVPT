@@ -22,6 +22,7 @@ class DetectorPipe():
         target.update(load_annotations(self.pipeline_cfg, self.data_cfg, img_id))
         image, target = resize(self.pipeline_cfg, image, target)
         # image, target = random_flip(self.pipeline_cfg, image, target)
+        target.update({'img_id_index': index})
         return image, target
     
     def __len__(self):

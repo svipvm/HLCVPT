@@ -56,8 +56,8 @@ def do_train(cfg, train_step, do_test, model, train_loader, valid_loader, optimi
                 result = do_test(model, valid_loader, device)
                 message = 'Test <epoch: {}/{}, iter: {}/{}>. test info'.format(
                     epoch, num_epochs, trainer_step, batch_size)
-                for idx_, (key, info) in enumerate(result.items()):
-                    message += ', {}: {:.3e}'.format(key, np.mean(info))
+                # for idx_, (key, info) in enumerate(result.items()):
+                #     message += ', {}: {:.3e}'.format(key, np.mean(info))
                 logger.info(message)
             
             # save model

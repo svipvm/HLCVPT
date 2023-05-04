@@ -25,7 +25,8 @@ def image2tensor(image):
 def target2tensor(target_):
     target = {}
     for key, data_dict in target_.items():
-        if 'data' in data_dict and 'type' in data_dict:
+        if isinstance(data_dict, dict) and \
+            'data' in data_dict and 'type' in data_dict:
             tensor = torch.from_numpy(np.ascontiguousarray(data_dict['data']))
             target[key] = tensor.type(DATA_TYPE_MAP[data_dict['type']])
         else:

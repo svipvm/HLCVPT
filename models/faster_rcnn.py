@@ -1,53 +1,39 @@
 import torch
-import torchvision
+# from torch import nn
+import torchvision.models.detection.image_list as image_list
+from collections import OrderedDict
 
-# Define the Faster R-CNN model
 class FasterRCNN(torch.nn.Module):
-    def __init__(self, model_cfg):
+    def __init__(self, backbone, neck, rpn, roi_head):
         super(FasterRCNN, self).__init__()
-        # Use a pre-trained ResNet-50 as the backbone
-        self.backbone = torchvision.models.resnet50(pretrained=True)
-        # Replace the last fully connected layer with a convolutional layer
-        in_features = self.backbone.fc.in_features
-        self.backbone.fc = torch.nn.Conv2d(in_features, in_features, kernel_size=1)
-        # Define the Region Proposal Network (RPN)
-        self.rpn = torchvision.models.detection.rpn.RegionProposalNetwork(
-            in_channels=in_features,
-            mid_channels=in_features,
-            ratios=[0.5, 1.0, 2.0],
-            anchor_sizes=[8, 16, 32],
-            rpn_pre_nms_top_n_train=2000,
-            rpn_pre_nms_top_n_test=1000,
-            rpn_post_nms_top_n_train=2000,
-            rpn_post_nms_top_n_test=1000,
-            rpn_nms_thresh=0.7
-        )
-        # Define the Region of Interest (RoI) Pooling layer
-        self.roi_pool = torchvision.ops.MultiScaleRoIAlign(
-            featmap_names=['0'],
-            output_size=7,
-            sampling_ratio=2
-        )
-        # Replace the last fully connected layer with two sibling layers:
-        # a box regression layer and a class prediction layer
-        self.box_head = torchvision.models.detection.faster_rcnn.TwoMLPHead(
-            in_channels=in_features,
-            representation_size=1024
-        )
-        self.box_predictor = torchvision.models.detection.faster_rcnn.FastRCNNPredictor(
-            in_channels=1024,
-            num_classes=2
-        )
-        # Define the Faster R-CNN model
-        self.faster_rcnn = torchvision.models.detection.FasterRCNN(
-            backbone=self.backbone,
-            rpn=self.rpn,
-            roi_heads=torchvision.models.detection.roi_heads.RoIHeads(
-                box_roi_pool=self.roi_pool,
-                box_head=self.box_head,
-                box_predictor=self.box_predictor
-            )
-        )
+        self.backbone = torch.nn.Sequential(*list(backbone.children())[:-3])
+        self.feature_indices=(5, 6, 7)
+        self.neck = neck
+        self.rpn = rpn
+        self.roi_head = roi_head
 
-# Create an instance of the Faster R-CNN model
-model = FasterRCNN()
+    def forward(self, x, target):
+        feature_maps= OrderedDict()
+
+        if self.neck:
+            feature_maps["feat_0"] = self.backbone[:self.feature_indices[0]](x)
+            for inx in range(1, len(self.feature_indices)):
+                feature_maps["feat_{}".format(inx)] = self.backbone[
+                        self.feature_indices[inx-1]:self.feature_indices[inx]
+                    ](feature_maps["feat_{}".format(inx-1)])
+            feature_maps = self.neck(feature_maps)
+        else:
+            feature_map = self.backbone(x)
+            feature_maps["feat_0"] = feature_map
+
+        image_sizes = [x.shape[-2:]] * x.shape[0]
+        images = image_list.ImageList(x, image_sizes)
+        proposals, proposal_losses = self.rpn(images, feature_maps, target)
+
+        detections, detector_losses = self.roi_head(feature_maps, proposals, image_sizes, target)
+
+        losses = {}
+        losses.update(proposal_losses)
+        losses.update(detector_losses)
+
+        return losses if self.training else detections

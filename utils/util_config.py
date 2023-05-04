@@ -11,7 +11,7 @@ def load_config(config_file):
 def config_to_str(cfg):
     return json.dumps(
         {key: getattr(cfg, key) for key in dir(cfg) if not key.startswith('_')},
-        indent=4, sort_keys=True)
+        indent=4, sort_keys=False)
 
 def get_output_dir(cfg):
     if cfg.recorder.get('time_stamp') is None:

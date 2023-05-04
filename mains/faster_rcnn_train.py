@@ -1,29 +1,51 @@
 # encoding: utf-8
-import sys, argparse
+import sys, argparse, math
 sys.path.append('.')
 
 from utils.util_config import *
 from utils.util_logger import *
 from utils.util_file import *
 from utils.util_sys import *
-from workers import plain_controller as controller
-from workers.plain_trainer import do_train
+
+logger = None
 
 def train_step(batch_data, model, optimizer, criticizer, device):
     images, targets = batch_data
     images = images.to(device)
-    # targets = targets.to(device)
-    # y, x, hyper, _ = do_parser(cfg, batch_data)
+    losses = model(images, targets)
+    total_loss = sum(loss for loss in losses.values())
+
+    if not math.isfinite(total_loss):
+        logger.info("Loss is {}, stopping training".format(total_loss))
+        sys.exit(1)
+    
     optimizer.zero_grad()
-    # e = model(y) if not hyper else model(y, *hyper)
-    result = model(images, targets)
-    print(result)
-    l = criticizer(1, 1)
-    l.backward()
+    total_loss.backward()
     optimizer.step()
 
-def do_test():
-    pass
+    loss_info = {}
+    for key, loss in losses.items():
+        loss_info[key] = loss.item()
+    loss_info['loss'] = total_loss.item()
+
+    return loss_info
+
+def do_test(model, valid_loader, device):
+    import torch
+    loss_summer = {}
+    model.eval()
+    for batch_data in valid_loader:
+        images, targets = batch_data
+        images = images.to(device)
+        with torch.no_grad():
+            boxes = model(images, targets)
+        # print(targets, boxes)
+        # for key, loss in losses.items():
+        #     if key not in loss_summer:
+        #         loss_summer[key] = []
+        #     loss_summer[key].append(loss)
+    model.train()
+    return {"info": "none"}
 
 def main():
     parser = argparse.ArgumentParser(description="Profile prefix")
@@ -35,6 +57,7 @@ def main():
 
     cfg = load_config(args.config)
 
+    global logger
     logger = setup_logger(cfg)
     logger.info('open this config file:\n{}'.format(config_to_str(cfg)))
 
@@ -43,8 +66,11 @@ def main():
     from utils.util_option import fixed_random_seed
     fixed_random_seed(cfg)
 
+    from workers import plain_controller as controller
     components = controller.load_components(cfg)
+
     logger.info("The description of this task is: {}".format(cfg.task.get('version')))
+    from workers.plain_trainer import do_train
     do_train(cfg, train_step, do_test, **components)
     logger.info("This result was saved to: {}".format(get_output_dir(cfg)))
 
