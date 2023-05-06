@@ -1,6 +1,7 @@
 from torch.utils.data import Dataset
 import utils.util_data as data_util
 import albumentations as T
+from albumentations.pytorch import ToTensorV2
 
 
 class CocoDataset(Dataset):
@@ -9,12 +10,13 @@ class CocoDataset(Dataset):
         self.dataset_cfg = dataset_cfg
         self.pipeline = pipeline
         self.transforms = T.Compose([
-            T.Normalize()
+            ToTensorV2()
         ])
 
     def __getitem__(self, index):
         image, target = self.pipeline(index)
-        image = self.transforms(image=image)['image']
+        
+        # image = self.transforms(image=image)['image']
 
         image = data_util.image2tensor(image)
         target = data_util.target2tensor(target)

@@ -11,7 +11,7 @@ from pycocotools.coco import COCO
 if __name__ == '__main__':
     cfg = load_config('config_detection')
 
-    dataset_root = cfg.dataset_root
+    dataset_root = cfg.dataset_info.get('dataset_root')
     annotation_files = [
         os.path.join(dataset_root, cfg.train_dataloader.get('dataset').get('ann_file'))
     ]

@@ -8,10 +8,13 @@ from models import save_model
 import torch, os
 import numpy as np
 
-def do_train(cfg, train_step, do_test, model, train_loader, valid_loader, optimizer, scheduler, criticizer):
+def do_train(cfg, train_step, do_test, 
+             model, train_loader, valid_loader, optimizer, scheduler, criticizer, 
+             **params):
     device = 'cpu' if empty_config_node(cfg.task.get('devices')) else 'cuda'
     model_path = mkdir_if_not_exist([get_output_dir(cfg), 'model'])
     logger = get_current_logger()
+    params.update({'cfg': cfg})
 
     log_period = cfg.recorder.get('log_period')
     num_epochs = cfg.runner.get('num_epochs')
@@ -38,24 +41,24 @@ def do_train(cfg, train_step, do_test, model, train_loader, valid_loader, optimi
                     current_lr = scheduler.get_last_lr()[0]
                 else:
                     current_lr = optimizer.state_dict()['param_groups'][0]['lr']
-                message = 'Train <epoch: {}/{}, iter: {}/{}, lr: {:.3e}>'.format(
-                    epoch, num_epochs, trainer_step, batch_size, current_lr)
+                message = 'Train <epoch: {}/{}, iter: {}, lr: {:.3e}>'.format(
+                    epoch, num_epochs, trainer_step, current_lr)
                 for idx_, (key, loss) in enumerate(losses.items()):
                     message += ', {}: {:.3e}'.format(key, loss)
                 logger.info(message)
 
             if trainer_step % loss_period == 0:
-                message = 'Train <epoch: {}/{}, iter: {}/{}. mean loss'.format(
-                    epoch, num_epochs, trainer_step, batch_size)
+                message = 'Train <epoch: {}/{}, iter: {}. mean loss'.format(
+                    epoch, num_epochs, trainer_step)
                 for idx_, (key, loss) in enumerate(loss_summer.items()):
                     message += ', {}: {:.3e}'.format(key, np.mean(loss))
                 logger.info(message)
                 loss_summer = {}
             
             if trainer_step % eval_period == 0:
-                result = do_test(model, valid_loader, device)
-                message = 'Test <epoch: {}/{}, iter: {}/{}>. test info'.format(
-                    epoch, num_epochs, trainer_step, batch_size)
+                result = do_test(**params, model=model, valid_loader=valid_loader, device=device)
+                message = 'Test <epoch: {}/{}, iter: {}>. test info'.format(
+                    epoch, num_epochs, trainer_step)
                 # for idx_, (key, info) in enumerate(result.items()):
                 #     message += ', {}: {:.3e}'.format(key, np.mean(info))
                 logger.info(message)
@@ -71,11 +74,10 @@ def do_train(cfg, train_step, do_test, model, train_loader, valid_loader, optimi
         if scheduler:
             scheduler.step()
 
-    result = do_test(model, valid_loader, device)
-    message = 'Test lastest. test info'.format(
-        epoch, num_epochs, trainer_step, batch_size)
-    for idx_, (key, info) in enumerate(result.items()):
-        message += ', {}: {:.3e}'.format(key, np.mean(info))
+    result = do_test(**params, model=model, valid_loader=valid_loader, device=device)
+    message = 'Test lastest. test info'
+    # for idx_, (key, info) in enumerate(result.items()):
+    #     message += ', {}: {:.3e}'.format(key, np.mean(info))
     logger.info(message)
 
     save_model(model, os.path.join(model_path, 'lastest.pt'))

@@ -17,18 +17,14 @@ class TestDatalodaer(unittest.TestCase):
         logger = setup_logger(cfg)
         logger.info('open this config file:\n{}'.format(config_to_str(cfg)))
 
-        pipeline, train_loader = build_dataloader(cfg, 0)
+        train_loader = build_dataloader(cfg, 2)
         d_iter = iter(train_loader)
-        data_pair = next(d_iter)
-        logger.info('image batch shape:\n{}'.format(data_pair[0].shape))
-        logger.info('target batch info:\n{}'.format(data_pair[1]))
+        images, targets = next(d_iter)
 
-        draw_info = data_pair[1][0]
-        image, target = pipeline(draw_info['img_id_index'])
-        logger.info('image batch shape:\n{}'.format(image.shape))
-        logger.info('target batch info:\n{}'.format(target))
-
-        draw_boxes(cfg, image, target)
+        for idx in range(len(images)):
+            logger.info('image shape:\n{}'.format(images[idx].shape))
+            logger.info('target info:\n{}'.format(targets[idx]))
+            draw_boxes(cfg, images[idx], targets[idx])
 
         # from IPython import embed;
         # embed()

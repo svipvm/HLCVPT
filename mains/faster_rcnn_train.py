@@ -6,12 +6,14 @@ from utils.util_config import *
 from utils.util_logger import *
 from utils.util_file import *
 from utils.util_sys import *
+from utils.util_visualizer import *
 
 logger = None
 
 def train_step(batch_data, model, optimizer, criticizer, device):
     images, targets = batch_data
-    images = images.to(device)
+    images = [image.to(device) for image in images]
+
     losses = model(images, targets)
     total_loss = sum(loss for loss in losses.values())
 
@@ -30,20 +32,23 @@ def train_step(batch_data, model, optimizer, criticizer, device):
 
     return loss_info
 
-def do_test(model, valid_loader, device):
+def do_test(cfg, model, valid_loader, device):
     import torch
-    loss_summer = {}
     model.eval()
-    for batch_data in valid_loader:
+    for idx, batch_data in enumerate(valid_loader):
         images, targets = batch_data
-        images = images.to(device)
+        images = [image.to(device) for image in images]
         with torch.no_grad():
-            boxes = model(images, targets)
-        # print(targets, boxes)
+            batch_targets = model(images, targets)
+        for idx, target in enumerate(targets):
+            infer_target = batch_targets[idx]
+            # infer_target.update({'name': target['name']})
+            draw_boxes(cfg, images[idx], targets[idx], infer_target)
         # for key, loss in losses.items():
         #     if key not in loss_summer:
         #         loss_summer[key] = []
         #     loss_summer[key].append(loss)
+        if idx == 35: break
     model.train()
     return {"info": "none"}
 
@@ -67,7 +72,7 @@ def main():
     fixed_random_seed(cfg)
 
     from workers import plain_controller as controller
-    components = controller.load_components(cfg)
+    components = controller.load_trainer_components(cfg)
 
     logger.info("The description of this task is: {}".format(cfg.task.get('version')))
     from workers.plain_trainer import do_train

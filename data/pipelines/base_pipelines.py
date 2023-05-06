@@ -19,6 +19,9 @@ def __get_target_from_annotations(container, ann_list):
             boxes.append([x, y, x + w, y + h])
             label_ids.append(ann['category_id'])
         # must to generate index ('data', 'type')
+        if len(boxes) == 0:
+            boxes.append([0, 0, 32, 32])
+            label_ids.append(0)
         target['boxes'] = {'data': boxes, 'type': 'fp16'}
         target['labels'] = {'data': label_ids, 'type': 'int64'}
     return target
@@ -31,6 +34,8 @@ def read_image_from_file(pipeline_cfg, data_cfg, img_id, cfg_index='ReadImageFro
     image_file = os.path.join(data_cfg.get('data_dir'), image_path)
     target = dict(name=image_file)
     image = cv2.imread(image_file, COLOR_TYPE_MAP[pipeline_cfg.get('color_type')])
+    if 'color' == pipeline_cfg.get('color_type'):
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return image, target
 
 def load_annotations(pipeline_cfg, data_cfg, img_id, cfg_index='LoadAnnotations'):

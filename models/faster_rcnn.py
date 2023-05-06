@@ -1,36 +1,54 @@
+from torchvision.models.detection.faster_rcnn import fasterrcnn_resnet50_fpn as Pytorch_FasterRCNN
+from torchvision.models.detection.faster_rcnn import FasterRCNN_ResNet50_FPN_Weights
+from torchvision.models.detection.faster_rcnn import ResNet50_Weights
+
+
 import torch
 # from torch import nn
-import torchvision.models.detection.image_list as image_list
+from torchvision.models.detection import image_list
+from torchvision.models.detection.transform import GeneralizedRCNNTransform
+from torchvision.models._utils import IntermediateLayerGetter
 from collections import OrderedDict
 
+
 class FasterRCNN(torch.nn.Module):
-    def __init__(self, backbone, neck, rpn, roi_head):
+    def __init__(self, transform, backbone, neck, rpn, roi_head, extra_params):
         super(FasterRCNN, self).__init__()
-        self.backbone = torch.nn.Sequential(*list(backbone.children())[:-3])
-        self.feature_indices=(5, 6, 7)
+        self.transform = transform
+        # select layers that wont be frozen
+        backbone_extra_params = extra_params.get('backbone')
+        layers_to_train = backbone_extra_params.get('layers_to_train')[
+            :backbone_extra_params.get('trainable_layers')
+        ]
+        # freeze layers only if pretrained backbone is used
+        for name, parameter in backbone.named_parameters():
+            if all([not name.startswith(layer) for layer in layers_to_train]):
+                parameter.requires_grad_(False)
+        self.backbone = IntermediateLayerGetter(backbone, 
+                            backbone_extra_params.get('return_layers'))
         self.neck = neck
         self.rpn = rpn
         self.roi_head = roi_head
 
-    def forward(self, x, target):
-        feature_maps= OrderedDict()
+    def forward(self, images, targets):
+        original_image_sizes = []
+        for img in images:
+            val = img.shape[-2:]
+            torch._assert(
+                len(val) == 2,
+                f"expecting the last two dimensions of the Tensor to be H and W instead got {img.shape[-2:]}",
+            )
+            original_image_sizes.append((val[0], val[1]))
 
-        if self.neck:
-            feature_maps["feat_0"] = self.backbone[:self.feature_indices[0]](x)
-            for inx in range(1, len(self.feature_indices)):
-                feature_maps["feat_{}".format(inx)] = self.backbone[
-                        self.feature_indices[inx-1]:self.feature_indices[inx]
-                    ](feature_maps["feat_{}".format(inx-1)])
-            feature_maps = self.neck(feature_maps)
-        else:
-            feature_map = self.backbone(x)
-            feature_maps["feat_0"] = feature_map
+        images, targets = self.transform(images, targets)
 
-        image_sizes = [x.shape[-2:]] * x.shape[0]
-        images = image_list.ImageList(x, image_sizes)
-        proposals, proposal_losses = self.rpn(images, feature_maps, target)
-
-        detections, detector_losses = self.roi_head(feature_maps, proposals, image_sizes, target)
+        features = self.backbone(images.tensors)
+        if isinstance(features, torch.Tensor):
+            features = OrderedDict([('0', features)])
+        features = self.neck(features)
+        proposals, proposal_losses = self.rpn(images, features, targets)
+        detections, detector_losses = self.roi_head(features, proposals, images.image_sizes, targets)
+        detections = self.transform.postprocess(detections, images.image_sizes, original_image_sizes)
 
         losses = {}
         losses.update(proposal_losses)

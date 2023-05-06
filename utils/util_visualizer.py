@@ -1,20 +1,23 @@
-
-import cv2, os
+import cv2, os, copy
 import numpy as np
 from utils.util_logger import get_current_logger
 from utils.util_config import get_output_dir
 from utils.util_file import mkdir_if_not_exist
-from utils.util_data import COLOR_TYPE_MAP
 
-def draw_boxes(cfg, image, target):
-    show_dir = mkdir_if_not_exist([get_output_dir(cfg), 'show'])
-    classes = cfg.classes
-    image_file = target['name']
-    boxes, labels = target['boxes'], target['labels']
-    if 'data' in boxes:
-        boxes = boxes['data']
-        labels = labels['data']
+def __draw_boxes_for_one_image(image, target, classes):
+    from torch import Tensor
+    if isinstance(image, Tensor):
+        image = image.cpu().detach().numpy()
+        image = (np.transpose(image, (1, 2, 0)) * 255).astype(np.uint8)
+    image = image.copy()
+    boxes, labels, scores = target['boxes'], target['labels'], target.get('scores', None)
+    with_score_flag = ('scores' in target)
+    if with_score_flag:
+        scores = target['scores'].cpu().detach().numpy()
+    if not isinstance(boxes, Tensor):
+        boxes, labels = boxes['data'], labels['data']
     for idx, bbox in enumerate(boxes):
+        score = scores[idx] if with_score_flag else None
         try:
             bbox = bbox.cpu().detach().numpy()
         except:
@@ -24,11 +27,29 @@ def draw_boxes(cfg, image, target):
         #     continue
         cv2.rectangle(image, (left, top), (right, bottom), (0, 255, 0))
         if classes:
-            cv2.putText(image, classes[labels[idx]], 
-                        (left, bottom), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+            fontScale = float(np.sqrt(right - left) / 16)
+            text_str = classes[labels[idx]] + (' {}'.format(round(score, 2)) if score else '')
+            cv2.putText(image, text_str, 
+                        (left, bottom), 
+                        cv2.FONT_HERSHEY_SIMPLEX, fontScale, (0, 0, 255), 1)
+    return image
 
+
+def draw_boxes(cfg, real_image, real_target, infer_target=None):
+    show_dir = mkdir_if_not_exist([get_output_dir(cfg), 'show'])
+    compare_flag = (infer_target and isinstance(infer_target, dict))
+    # if compare_flag and (real_target['name'] != infer_target['name']):
+    #     assert Exception("real_target and infer_target' name must be same!")
+    image_file = real_target['name']
+    classes = cfg.dataset_info.get('classes')
+    real_anno_image = __draw_boxes_for_one_image(real_image, real_target, classes)
+    if compare_flag != None:
+        infer_anno_image = __draw_boxes_for_one_image(real_image, infer_target, classes)
+        image = np.hstack([real_anno_image, infer_anno_image])
+    else:
+        image = real_anno_image
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     save_name = os.path.basename(image_file).split('.')[0] + '.png'
-    # des_file = os.path.join(show_dir, save_name)
     cv2.imwrite(os.path.join(show_dir, save_name), image)
         
 

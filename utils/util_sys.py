@@ -2,6 +2,7 @@
 
 import os
 from .util_logger import get_current_logger
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 def load_device_info(cfg):
     gpu_list = ','.join(str(x) for x in cfg.task.get('devices'))

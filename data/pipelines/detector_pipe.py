@@ -24,6 +24,7 @@ class DetectorPipe():
         # image, target = random_flip(self.pipeline_cfg, image, target)
         target.update({'img_id_index': index})
         return image, target
+    # cv2 format
     
     def __len__(self):
         return len(self.data_cfg.get('img_ids'))

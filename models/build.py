@@ -36,8 +36,7 @@ def build_model(cfg, is_train=True):
         #     init_type, init_bn_type, gain))
         pass
 
-    # logger.info("Model: \n{}".format(model))
-
+    logger.info("Model visible devices: \n{}".format(cfg.task.get('devices')))
     return DataParallel(model, cfg.task.get('devices'))
 
 def save_model(model, path):
@@ -54,29 +53,53 @@ def load_model(path, model, strict=True):
     state_dict = torch.load(path)
     model.load_state_dict(state_dict, strict=strict)
 
-def __get_model(model_type, model_params):
+def __get_model(model_type, model_params, extra_params_dict=None):
     logger = get_current_logger()
     try:
         model = getattr(models, model_type)
-        model = model(**model_params)
+        if isinstance(model_params, dict):
+            if extra_params_dict:
+                model = model(extra_params=extra_params_dict, **model_params)
+            else:
+                model = model(**model_params)
     except:
         message = "Failure to build this [{}] modle with {} parameters!".format(
                         model_type, model_params)
         logger.error(message)
         raise Exception(message)
     logger.info('{} model\n{}'.format(model_type, model))
+    if extra_params_dict:
+        no_requires_grad_model_list = []
+        for name, parameter in model.named_parameters():
+            if parameter.requires_grad: continue
+            no_requires_grad_model_list.append(name)
+        logger.info('No require gradient models: \n{}'.format(no_requires_grad_model_list))
     return model
 
 def __parse_model(model_cfg: dict, main_model=True):
     if 'type' not in model_cfg or 'params' not in model_cfg: 
-        return model_cfg
+        return model_cfg, False
+    if main_model: extra_params_dict = {}
     model_params_dict = {}
-    for key, value in model_cfg.get('params').items():
-        if isinstance(value, dict): 
-            value = __parse_model(value, False)
-        model_params_dict[key] = value
-    model = __get_model(model_cfg.get('type'), model_params_dict)
-    return model
+    if isinstance(model_cfg.get('params'), dict):
+        for key, value in model_cfg.get('params').items():
+            if isinstance(value, dict): 
+                temp_value, extra_flag = __parse_model(value, False)
+                if main_model and extra_flag and 'extra_params' in value:
+                    extra_params_dict.update({key: value['extra_params']})
+                value = temp_value
+            model_params_dict[key] = value
+    elif isinstance(model_cfg.get('params'), bool) and not model_cfg.get('params'):
+        model_params_dict = False
+    if main_model:
+        model = __get_model(model_cfg.get('type'), model_params_dict, extra_params_dict)
+        logger = get_current_logger()
+        logger.info('{} model extra params\n{}'.format(
+            model_cfg.get('type'), extra_params_dict))
+        return model
+    else:
+        model = __get_model(model_cfg.get('type'), model_params_dict)
+        return model, True
 
 def __init_weight(model,  init_type, init_bn_type, gain):
     classname = model.__class__.__name__

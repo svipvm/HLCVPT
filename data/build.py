@@ -31,7 +31,7 @@ def build_dataloader(cfg, data_type):
         drop_last=drop_last,
         pin_memory=True)
 
-    return pipeline, data_loader
+    return data_loader
 
 def __get_pipeline(dataset_cfg):
     dataset_type = dataset_cfg.get('type')

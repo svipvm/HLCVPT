@@ -1,4 +1,4 @@
-def load_components(cfg):
+def load_trainer_components(cfg):
     from models import build_model
     model = build_model(cfg)
 

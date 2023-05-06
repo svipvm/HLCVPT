@@ -65,7 +65,7 @@ def main():
     fixed_random_seed(cfg)
 
     from workers import plain_controller as controller
-    components = controller.load_components(cfg)
+    components = controller.load_trainer_components(cfg)
 
     logger.info("The description of this task is: {}".format(cfg.task.get('version')))
     from workers.plain_trainer import do_train
