@@ -31,15 +31,13 @@ def __draw_boxes_for_one_image(image, target, classes):
             text_str = classes[labels[idx]] + (' {}'.format(round(score, 2)) if score else '')
             cv2.putText(image, text_str, 
                         (left, bottom), 
-                        cv2.FONT_HERSHEY_SIMPLEX, fontScale, (0, 0, 255), 1)
+                        cv2.FONT_HERSHEY_SIMPLEX, fontScale, (255, 0, 0), 1)
     return image
 
 
 def draw_boxes(cfg, real_image, real_target, infer_target=None):
     show_dir = mkdir_if_not_exist([get_output_dir(cfg), 'show'])
     compare_flag = (infer_target and isinstance(infer_target, dict))
-    # if compare_flag and (real_target['name'] != infer_target['name']):
-    #     assert Exception("real_target and infer_target' name must be same!")
     image_file = real_target['name']
     classes = cfg.dataset_info.get('classes')
     real_anno_image = __draw_boxes_for_one_image(real_image, real_target, classes)

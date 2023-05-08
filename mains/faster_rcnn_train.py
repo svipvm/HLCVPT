@@ -48,7 +48,7 @@ def do_test(cfg, model, valid_loader, device):
         #     if key not in loss_summer:
         #         loss_summer[key] = []
         #     loss_summer[key].append(loss)
-        if idx == 35: break
+        if idx >= 35: break
     model.train()
     return {"info": "none"}
 

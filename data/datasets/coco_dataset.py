@@ -3,15 +3,12 @@ import utils.util_data as data_util
 import albumentations as T
 from albumentations.pytorch import ToTensorV2
 
-
 class CocoDataset(Dataset):
     def __init__(self, dataset_cfg, pipeline):
         super(CocoDataset, self).__init__()
         self.dataset_cfg = dataset_cfg
         self.pipeline = pipeline
-        self.transforms = T.Compose([
-            ToTensorV2()
-        ])
+        self.transforms = T.Compose([])
 
     def __getitem__(self, index):
         image, target = self.pipeline(index)

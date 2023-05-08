@@ -1,15 +1,11 @@
 from torchvision.models.detection.faster_rcnn import fasterrcnn_resnet50_fpn as Pytorch_FasterRCNN
 from torchvision.models.detection.faster_rcnn import FasterRCNN_ResNet50_FPN_Weights
 from torchvision.models.detection.faster_rcnn import ResNet50_Weights
-
+from torchvision.models.detection.transform import GeneralizedRCNNTransform
 
 import torch
-# from torch import nn
-from torchvision.models.detection import image_list
-from torchvision.models.detection.transform import GeneralizedRCNNTransform
 from torchvision.models._utils import IntermediateLayerGetter
 from collections import OrderedDict
-
 
 class FasterRCNN(torch.nn.Module):
     def __init__(self, transform, backbone, neck, rpn, roi_head, extra_params):
@@ -30,7 +26,7 @@ class FasterRCNN(torch.nn.Module):
         self.rpn = rpn
         self.roi_head = roi_head
 
-    def forward(self, images, targets):
+    def forward(self, images, targets=None):
         original_image_sizes = []
         for img in images:
             val = img.shape[-2:]

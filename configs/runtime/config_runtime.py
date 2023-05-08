@@ -1,7 +1,7 @@
 optimizer=dict(
     type="SGD",
     params=dict(
-        lr=0.0001, 
+        lr=0.00001, 
         momentum=0.90, 
         weight_decay=0.0001
     )
@@ -25,7 +25,7 @@ runner=dict(
     num_epochs=500,
     loss_period=300,
     eval_period=500,
-    save_period=30000
+    save_period=10000
 )
 
 recorder=dict(

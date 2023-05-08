@@ -15,18 +15,19 @@ def build_model(cfg, is_train=True):
     logger = get_current_logger()
 
     # pretrain field
-    if is_train and not empty_config_node(model_cfg.get('pretrained')):
-        load_model(model_cfg.get('pretrained'), model)
-        logger.info('Pretrained weight: {}'.format(model_cfg.get('pretrained')))
+    if is_train:
+        if empty_config_node(model_cfg.get('checkpoint')):
+            logger.info('There is no checkpoint to resume')
+        else:
+            load_model(model_cfg.get('checkpoint'), model)
+            logger.info('Load checkpoint weight: {}'.format(model_cfg.get('checkpoint')))
     # test for artefact
-    elif not is_train:
-        # if empty_config_node(cfg.TEST.WEIGHT):
-        #     raise Exception("Not found this weight!")
-        # load_model(cfg.TEST.WEIGHT, model)
-        # logger.info('Loading weight: {}'.format(cfg.TEST.WEIGHT))
+    else:
+        load_model(model_cfg.get('weight'), model)
+        logger.info('Load checkpoint weight: {}'.format(model_cfg.get('weight')))
         model.eval()
     # init model weight
-    elif is_train:
+    # elif is_train:
         # init_type = cfg.MODELG.INIT_TYPE
         # init_bn_type = cfg.MODELG.INIT_BN_TYPE
         # gain = cfg.MODELG.INIT_GAIN
@@ -34,9 +35,9 @@ def build_model(cfg, is_train=True):
         # model.apply(init_fn)
         # logger.info('Initialization method [{:s} + {:s}], gain is [{:.2f}]'.format(
         #     init_type, init_bn_type, gain))
-        pass
+        # pass
 
-    logger.info("Model visible devices: \n{}".format(cfg.task.get('devices')))
+    logger.info("Model visible devices: {}".format(cfg.task.get('devices')))
     return DataParallel(model, cfg.task.get('devices'))
 
 def save_model(model, path):

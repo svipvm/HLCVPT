@@ -33,23 +33,4 @@ def target2tensor(target_):
             target[key] = data_dict
     return target
 
-def __get_images_and_boxes(dataset_cfg):
-    from pycocotools.coco import COCO
-    ann_file = os.path.join(dataset_cfg.get('data_root'), dataset_cfg.get('ann_file'))
-    coco = COCO(ann_file)
-    img_ids = list(sorted(coco.imgs.keys()))
-    dataset = {'shapes': [], 'labels': []}
-    for image_id in img_ids:
-        ann_list = coco.loadAnns(coco.getAnnIds(image_id))
-        coco_img = coco.loadImgs(image_id)[0]
-        # labels = []
-        for ann in ann_list:
-            x, y, w, h = ann['bbox']
-            category_id = ann['category_id']
-            # labels.append([category_id, x, y, w, h])
-            dataset['shapes'].append([coco_img['width'], coco_img['height']])
-            dataset['labels'].append([category_id, x, y, w, h])
-    dataset['shapes'] = np.array(dataset['shapes'])
-    dataset['labels'] = np.array(dataset['labels'])
-    return dataset
 

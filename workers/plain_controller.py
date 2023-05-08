@@ -25,3 +25,17 @@ def load_trainer_components(cfg):
     }
 
     return components
+
+def load_tester_components(cfg):
+    from models import build_model
+    model = build_model(cfg, False)
+
+    from data import build_dataloader
+    test_loader = build_dataloader(cfg, 2)
+
+    components = {
+        'model': model,
+        'test_loader': test_loader
+    }
+
+    return components
